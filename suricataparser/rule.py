@@ -5,6 +5,7 @@ class Option:
     CLASSTYPE = "classtype"
     GID = "gid"
     METADATA = "metadata"
+    REFERENCE = "reference"
     MSG = "msg"
     REV = "rev"
     SID = "sid"
@@ -12,6 +13,7 @@ class Option:
     def __init__(self, name: str, value: Optional[Any] = None):
         self.name: str = name
         self.value: Optional[str, 'Metadata'] = value
+        self.value: Optional[str, 'Reference'] = value
 
     def __eq__(self, other: 'Option') -> bool:
         return self.name == other.name and self.value == other.value
@@ -45,6 +47,29 @@ class Metadata:
         return meta_items
 
 
+class Reference:
+    def __init__(self, data: list):
+        self.data = data
+
+    def __str__(self) -> str:
+        return ", ".join(self.data)
+
+    def add_ref(self, name: str, value: str) -> list:
+        self.data.append("{name} {value}".format(name=name, value=value))
+        return self.data
+
+    def pop_ref(self, name: str) -> list:
+        ref_items = []
+        reference = []
+        for ref in self.data:
+            if ref.startswith(name):
+                ref_items.append(ref)
+            else:
+                reference.append(ref)
+        self.data = reference
+        return ref_items
+
+
 class Rule:
     def __init__(self, enabled: bool, action: str, header: str,
                  options: List[Option], raw: Optional[str] = None):
@@ -58,6 +83,7 @@ class Rule:
         self._rev = None
         self._classtype = None
         self._metadata = []
+        self._reference = []
         self._raw = raw
         if raw:
             self.build_options()
@@ -83,6 +109,10 @@ class Rule:
     @property
     def metadata(self) -> list:
         return self._metadata
+
+    @property
+    def reference(self) -> list:
+        return self._reference
 
     @property
     def msg(self) -> str:
@@ -119,6 +149,8 @@ class Rule:
                 self._classtype = option.value
             elif option.name == Option.METADATA:
                 self._metadata.extend(option.value.data)
+            elif option.name == Option.REFERENCE:
+                self._reference.extend(option.value.data)
 
     def build_rule(self) -> str:
         self._raw = self._action + " " + self._header + " "
@@ -152,7 +184,7 @@ class Rule:
     def to_dict(self) -> dict:
         options = []
         for option in self.options:
-            if option.name != Option.METADATA:
+            if option.name != Option.METADATA or option.name != Option.REFERENCE:
                 options.append({"name": option.name, "value": option.value})
             else:
                 options.append({"name": option.name, "value": option.value.data})
