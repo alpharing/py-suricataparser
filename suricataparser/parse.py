@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Optional, Union, List
 
 from suricataparser.exceptions import RuleParseException
-from suricataparser.rule import Rule, Option, Metadata
+from suricataparser.rule import Rule, Option, Metadata, Reference 
 
 
 rule_pattern = re.compile(r"^(?P<enabled>#)*[\s#]*"
@@ -20,6 +20,15 @@ def parse_metadata(buffer: str) -> Metadata:
 
     items = [kv.strip() for kv in buffer.strip().split(",")]
     return Metadata(items)
+
+
+def parse_reference(buffer: str) -> Reference:
+    if not buffer:
+        # Reference never empty
+        raise RuleParseException()
+
+    items = [kv.strip() for kv in buffer.strip().split(",")]
+    return Reference(items)
 
 
 def parse_options(buffer: str) -> List[Option]:
@@ -45,6 +54,10 @@ def parse_options(buffer: str) -> List[Option]:
 
         if name == Option.METADATA:
             value = parse_metadata(value)
+
+        if name == Option.REFERENCE:
+            value = parse_reference(value)
+      
         options.append(Option(name=name, value=value))
         option = ""
 
